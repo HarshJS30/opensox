@@ -12,6 +12,15 @@ import { Bars3Icon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import News from "@/components/non-pro-news/News";
 
+/**
+ * Parse a date string in "YYYY-MM-DD" format as a local date
+ * to avoid timezone-dependent off-by-one errors
+ */
+function parsePostDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export default function NewslettersPage() {
   const { isCollapsed, showSidebar, setShowSidebar } = useShowSidebar();
   const { isPaidUser, isLoading } = useSubscription();
@@ -32,7 +41,7 @@ export default function NewslettersPage() {
     const yearsSet = new Set<string>();
 
     posts.forEach((post) => {
-      const date = new Date(post.date);
+      const date = parsePostDate(post.date); // ✅ Fixed
       monthsSet.add(date.toLocaleString("default", { month: "long" }));
       yearsSet.add(date.getFullYear().toString());
     });
@@ -64,7 +73,7 @@ export default function NewslettersPage() {
       const query = searchQuery.toLowerCase();
       const matchesSearch = post.heading.toLowerCase().includes(query);
 
-      const date = new Date(post.date);
+      const date = parsePostDate(post.date); // ✅ Fixed
       const month = date.toLocaleString("default", { month: "long" });
       const year = date.getFullYear().toString();
 
@@ -75,7 +84,7 @@ export default function NewslettersPage() {
     });
 
     return [...filtered].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => parsePostDate(b.date).getTime() - parsePostDate(a.date).getTime() // ✅ Fixed
     );
   }, [searchQuery, selectedMonth, selectedYear, posts]);
 
@@ -312,7 +321,7 @@ export default function NewslettersPage() {
 
                       <div className="ml-[30px] max-[1024px]:ml-0">
                         <h3 className="font-extralight text-[13px]">
-                          {new Date(post.date).toLocaleDateString("en-US", {
+                          {parsePostDate(post.date).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",

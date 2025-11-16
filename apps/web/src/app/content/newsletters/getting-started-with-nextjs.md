@@ -28,7 +28,7 @@ npm run dev
 
 A typical Next.js project looks like this:
 
-```
+```text
 my-next-app/
 ├── app/
 │   ├── layout.tsx

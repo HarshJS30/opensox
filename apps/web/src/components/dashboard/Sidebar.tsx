@@ -6,22 +6,25 @@ import SidebarItem from "../sidebar/SidebarItem";
 import { useRouter } from "next/navigation";
 import { IconWrapper } from "../ui/IconWrapper";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
   XMarkIcon,
   HomeIcon,
   FolderIcon,
-  ArrowRightOnRectangleIcon,
   SparklesIcon,
   StarIcon,
   DocumentTextIcon,
   Cog6ToothIcon,
+  NewspaperIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
+
 import { useShowSidebar } from "@/store/useShowSidebar";
 import { signOut, useSession } from "next-auth/react";
 import { ProfilePic } from "./ProfilePic";
 import { useSubscription } from "@/hooks/useSubscription";
 import { OpensoxProBadge } from "../sheet/OpensoxProBadge";
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 const SIDEBAR_ROUTES = [
   {
@@ -33,6 +36,11 @@ const SIDEBAR_ROUTES = [
     path: "/dashboard/projects",
     label: "OSS Projects",
     icon: <FolderIcon className="size-5" />,
+  },
+  {
+    path: "/newsletters",
+    label: "Newsletters",
+    icon: <NewspaperIcon className="size-5" />,
   },
   {
     path: "/dashboard/sheet",
@@ -51,12 +59,9 @@ export default function Sidebar({ overlay = false }: { overlay?: boolean }) {
   };
 
   const proClickHandler = () => {
-    if (isPaidUser) {
-      router.push("/dashboard/pro/dashboard");
-    } else {
-      router.push("/pricing");
-    }
+    router.push(isPaidUser ? "/dashboard/pro/dashboard" : "/pricing");
   };
+
   const desktopWidth = isCollapsed ? 80 : 288;
   const mobileWidth = desktopWidth;
 
@@ -72,26 +77,24 @@ export default function Sidebar({ overlay = false }: { overlay?: boolean }) {
       style={{ width: overlay ? mobileWidth : desktopWidth }}
     >
       {/* Mobile header */}
-      <div className="flex justify-between items-center h-16 px-4 border-b border-ox-header xl:hidden bg-ox-sideba">
-        <div className="flex items-center">
-          <Link
-            href="/"
-            className="text-xl font-semibold text-ox-white hover:text-ox-purple transition-colors cursor-pointer"
-          >
-            Opensox AI
-          </Link>
-        </div>
+      <div className="flex justify-between items-center h-16 px-4 border-b border-ox-header xl:hidden bg-ox-sidebar">
+        <Link
+          href="/"
+          className="text-xl font-semibold text-ox-white hover:text-ox-purple transition-colors"
+        >
+          Opensox AI
+        </Link>
         <IconWrapper onClick={() => setShowSidebar(false)}>
           <XMarkIcon className="size-5 text-ox-purple" />
         </IconWrapper>
       </div>
 
-      {/* Desktop header with collapse */}
+      {/* Desktop header */}
       <div className="hidden xl:flex items-center justify-between px-4 py-4 border-b border-ox-header bg-ox-sidebar">
         {!isCollapsed && (
           <Link
             href="/"
-            className="text-[#eaeaea] font-semibold tracking-wide select-none text-xl hover:text-ox-purple transition-colors cursor-pointer"
+            className="text-[#eaeaea] font-semibold tracking-wide text-xl hover:text-ox-purple transition-colors"
           >
             Opensox AI
           </Link>
@@ -108,30 +111,27 @@ export default function Sidebar({ overlay = false }: { overlay?: boolean }) {
         </IconWrapper>
       </div>
 
-      <div className="sidebar-body flex-grow flex-col overflow-y-auto px-3 py-4">
-        {SIDEBAR_ROUTES.map((route) => {
-          return (
-            <Link href={route.path} key={route.path}>
-              <SidebarItem
-                itemName={route.label}
-                icon={route.icon}
-                collapsed={isCollapsed}
-              />
-            </Link>
-          );
-        })}
+      {/* Sidebar body */}
+      <div className="sidebar-body flex-grow flex-col overflow-y-auto px-3 py-4 space-y-1">
+        {SIDEBAR_ROUTES.map((route) => (
+          <Link href={route.path} key={route.path}>
+            <SidebarItem itemName={route.label} icon={route.icon} collapsed={isCollapsed} />
+          </Link>
+        ))}
+
         <SidebarItem
           itemName="Request a feature"
           onclick={reqFeatureHandler}
           icon={<SparklesIcon className="size-5" />}
           collapsed={isCollapsed}
         />
+
         {!isCollapsed && !isPaidUser ? (
           <div
-            className="w-full h-[44px] flex items-center rounded-md cursor-pointer transition-colors px-2 gap-3 pl-3 hover:bg-[#292929] group"
+            className="w-full h-[44px] flex items-center rounded-md cursor-pointer px-2 gap-3 pl-3 hover:bg-[#292929] group"
             onClick={proClickHandler}
           >
-            <span className="shrink-0 text-[#eaeaea] group-hover:text-white transition-colors">
+            <span className="text-[#eaeaea] group-hover:text-white transition-colors">
               <StarIcon className="size-5" />
             </span>
             <div className="flex items-center gap-1">
@@ -146,12 +146,11 @@ export default function Sidebar({ overlay = false }: { overlay?: boolean }) {
             itemName="Opensox Pro"
             onclick={proClickHandler}
             icon={<StarIcon className="size-5" />}
-          collapsed={isCollapsed}
-        />
+            collapsed={isCollapsed}
+          />
         )}
       </div>
 
-      {/* Bottom profile */}
       <ProfileMenu isCollapsed={isCollapsed} />
     </motion.div>
   );
@@ -163,74 +162,63 @@ function ProfileMenu({ isCollapsed }: { isCollapsed: boolean }) {
   const router = useRouter();
 
   const fullName = session?.user?.name || "User";
-  const firstName = fullName.split(" ")[0];
   const userEmail = session?.user?.email || "";
   const userImage = session?.user?.image || null;
 
-  // Close dropdown when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (open && !target.closest(".profile-menu-container")) {
+    const handler = (e: MouseEvent) => {
+      if (open && !(e.target as HTMLElement).closest(".profile-menu-container")) {
         setOpen(false);
       }
     };
-
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
   return (
     <div className="px-3 py-4 border-t border-ox-header bg-ox-sidebar relative profile-menu-container">
       <div
-        className={`group flex items-center rounded-md bg-ox-profile-card border border-ox-header p-2 transition-all duration-300 ease-out cursor-pointer ${
+        className={`group flex items-center rounded-md bg-ox-profile-card border border-ox-header p-2 cursor-pointer ${
           isCollapsed ? "justify-center" : "gap-3"
         }`}
-        onClick={() => setOpen((s) => !s)}
+        onClick={() => setOpen((o) => !o)}
       >
         <ProfilePic imageUrl={userImage} />
         {!isCollapsed && (
           <div className="flex-1 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-xs text-[#eaeaea] font-semibold">
-                {firstName}
-              </span>
+              <span className="text-xs text-[#eaeaea] font-semibold">{fullName}</span>
               <span className="text-[10px] text-zinc-400">{userEmail}</span>
             </div>
             <ChevronLeftIcon
-              className={`size-4 text-zinc-400 transition-transform ${open ? "rotate-90" : "-rotate-90"}`}
+              className={`size-4 text-zinc-400 transition-transform ${
+                open ? "rotate-90" : "-rotate-90"
+              }`}
             />
           </div>
         )}
       </div>
-      {/* Profile Card Dropdown */}
+
       <AnimatePresence>
         {!isCollapsed && open && (
-          <motion.div 
-            key="profile-dropdown"
+          <motion.div
+            key="dropdown"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.18 }}
-            className="absolute bottom-full left-3 right-3 mb-2 bg-ox-profile-card border border-ox-header rounded-lg shadow-xl overflow-hidden z-50"
+            className="absolute bottom-full left-3 right-3 mb-2 bg-ox-profile-card border border-ox-header rounded-lg shadow-xl overflow-hidden"
           >
-            {/* User Info Section */}
             <div className="p-3 border-b border-ox-header">
               <div className="flex items-center gap-3">
                 <ProfilePic imageUrl={userImage} />
                 <div className="flex flex-col">
-                  <span className="text-sm text-white font-semibold">
-                    {fullName}
-                  </span>
+                  <span className="text-sm text-white font-semibold">{fullName}</span>
                   <span className="text-xs text-zinc-400">{userEmail}</span>
                 </div>
               </div>
             </div>
 
-            {/* Menu Items */}
             <div className="py-1">
               <button
                 onClick={() => {
@@ -242,6 +230,7 @@ function ProfileMenu({ isCollapsed }: { isCollapsed: boolean }) {
                 <Cog6ToothIcon className="size-4" />
                 <span>Account Settings</span>
               </button>
+
               <button
                 onClick={() => {
                   signOut({ callbackUrl: "/" });
